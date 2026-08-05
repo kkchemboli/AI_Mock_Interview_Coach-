@@ -19,13 +19,14 @@ def build_messages(
     state: ConversationState,
     *,
     summary: dict[str, Any],
+    history_limit: int | None = None,
 ) -> list[dict]:
     context = {
         "role": role,
         "seniority": state.config.seniority,
         "persona": state.persona_for("coach"),
         "summary": summary,
-        "transcript": compact_history(state, include_evaluations=True),
+        "transcript": compact_history(state, include_evaluations=True, limit=history_limit),
     }
     return _build_messages(COACH_SYSTEM, context)
 
@@ -35,10 +36,11 @@ def run(
     state: ConversationState,
     *,
     summary: dict[str, Any],
+    history_limit: int | None = None,
     config: LLMConfig | None = None,
 ) -> str:
     return chat_text(
-        build_messages(role, state, summary=summary),
+        build_messages(role, state, summary=summary, history_limit=history_limit),
         config=config,
         max_tokens=2048,
     )

@@ -20,6 +20,7 @@ def build_messages(
     *,
     question_type: str,
     difficulty: float,
+    history_limit: int | None = None,
 ) -> list[dict]:
     context = {
         "role": role,
@@ -28,7 +29,7 @@ def build_messages(
         "question_type": question_type,
         "difficulty": difficulty,
         "persona": state.persona_for("interviewer"),
-        "history": compact_history(state),
+        "history": compact_history(state, limit=history_limit),
     }
     return _build_messages(INTERVIEWER_SYSTEM, context)
 
@@ -39,10 +40,14 @@ def run(
     *,
     question_type: str,
     difficulty: float,
+    history_limit: int | None = None,
     config: LLMConfig | None = None,
 ) -> dict[str, Any]:
     return chat_json(
-        build_messages(role, state, question_type=question_type, difficulty=difficulty),
+        build_messages(
+            role, state, question_type=question_type, difficulty=difficulty,
+            history_limit=history_limit,
+        ),
         schema=QUESTION_SCHEMA,
         config=config,
     )

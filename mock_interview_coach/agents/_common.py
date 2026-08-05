@@ -29,6 +29,7 @@ def build_messages(system: str, context: dict[str, Any]) -> list[dict]:
 def compact_history(
     state: ConversationState,
     include_evaluations: bool = False,
+    limit: int | None = None,
 ) -> list[dict[str, Any]]:
     entries = []
     for turn in state.turns:
@@ -48,6 +49,8 @@ def compact_history(
                 item["response_type"] = evaluation.get("response_type")
             entry["answers"].append(item)
         entries.append(entry)
+    if limit is not None:
+        entries = entries[-limit:]
     return entries
 
 

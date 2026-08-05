@@ -126,7 +126,7 @@ def chat_json(
     messages: list[dict],
     schema: dict | None = None,
     temperature: float = 0.3,
-    max_tokens: int = 2048,
+    max_tokens: int = 4096,
     config: LLMConfig | None = None,
 ) -> dict:
     """Return a parsed dict. When `schema` (from `structured_schema`) is given,
