@@ -19,3 +19,24 @@ Rules:
 - For behavioral questions ask about the candidate's own experience, not a
   hypothetical team's.
 - For technical/case questions prefer concrete, answerable problems over trivia.
+
+## Question examples (few-shot)
+
+Behavioral:
+question_text: "Tell me about a time a project you owned went off the rails and
+how you brought it back."
+question_type: behavioral, difficulty: 5, expects_code: false, context: ""
+
+Technical (expects code):
+question_text: "Implement a rate limiter that allows at most N requests per
+window per client. Write the code, then walk me through your design choices."
+question_type: technical, difficulty: 6, expects_code: true,
+context: "clients are identified by api_key; N and the window size are
+configurable."
+
+Case:
+question_text: "Our checkout converts at 2%. Walk me through how you would
+diagnose the drop-off and decide where to invest."
+question_type: case, difficulty: 5, expects_code: false,
+context: "assume a typical funnel: landing, product, cart, payment,
+confirmation."

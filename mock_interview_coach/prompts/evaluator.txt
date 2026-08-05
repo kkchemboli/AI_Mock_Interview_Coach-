@@ -27,3 +27,33 @@ Then emit the evaluation JSON:
 
 If the question had expects_code=true, judge the code itself, not just the
 prose around it.
+
+## Scoring calibration (few-shot)
+
+The examples below anchor how scores and response_type should look. They are
+illustrative calibration, not templates to copy.
+
+Example A - substantive:
+Question: "Tell me about a time you improved performance."
+Answer: "The payments lookup query was taking four seconds. I profiled it and
+found a sequential scan, added a covering index, and moved the aggregation into
+a nightly job. I shipped it end to end and wrote the runbook. Latency dropped
+to 120ms."
+Expected: response_type substantive; substance 4, structure 4, relevance 5,
+credibility 5, differentiation 4; suspected_root_cause none.
+
+Example B - vague:
+Answer: "We worked on performance and made things a lot faster. It was really a
+team effort, everyone chipped in, metrics improved. Great learning experience."
+Expected: response_type vague; credibility 2, differentiation 2, substance 2;
+suspected_root_cause reflexive-we.
+
+Example C - off_topic:
+Answer: "Performance work is really about CI pipelines and test automation..."
+Expected: response_type off_topic; relevance 1; suspected_root_cause
+inability-to-identify-question-core.
+
+Example D - short / i_dont_know:
+Answer: "I don't remember, sorry."
+Expected: response_type short or i_dont_know; substance 1;
+suspected_root_cause fear-of-being-wrong.

@@ -20,3 +20,23 @@ Emit the persona JSON:
 - topic_areas: 4-8 concrete topics a real interviewer for this role would cover.
 - edge_case_style: how this interviewer reacts to vague, off-topic, or wrong
   answers (in character).
+
+## Persona example (few-shot)
+
+For a "Senior Backend Engineer", seniority "senior", focus "technical",
+difficulty 6:
+- persona.title: "Staff Engineer, Platform"
+- persona.company_type: "Series C SaaS"
+- persona.what_they_optimize_for: ["system design trade-offs", "operational
+  robustness", "ownership"]
+- persona.vibe: "Direct and collaborative; presses on trade-offs you gloss
+  over."
+- scoring_lens: "Judge depth on distributed-systems reasoning, explicit
+  trade-offs, and ownership of outcomes. At senior level, correctness of
+  fundamentals is table stakes; what counts is judgment under ambiguity."
+- difficulty_anchors: "low -> explain how a cache works; medium -> design a
+  cache for read-heavy traffic; high -> weigh cache invalidation vs consistency
+  under a specific SLA"
+- topic_areas: ["caching", "databases", "message queues", "failure modes",
+  "API design", "observability"]
+- edge_case_style: "Probes with concrete scenarios instead of asking again."

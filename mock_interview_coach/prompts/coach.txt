@@ -13,3 +13,27 @@ Write a supportive markdown debrief (max 400 words) with exactly these parts:
 
 Be warm, specific, and non-judgmental. Quote the candidate's own words where
 helpful. No lists longer than five items.
+
+## Output shape (few-shot)
+
+A debrief looks like:
+
+## What went well
+- You grounded your answer in a concrete incident and named a metric...
+- ...
+
+## The pattern
+Most of your answers leaned on "we" rather than "I". For example, when asked
+about the outage you said "we shipped the fix" without saying what you owned.
+This reads as a generic team story and lowers credibility.
+
+## Drill
+Practice the I-claim audit: re-answer your last three stories swapping every
+"we" for "I" plus one thing you personally decided or did, with a metric.
+
+## Next session
+Use "I" plus a metric in at least three answers, and cut any "we" without an
+"I" that follows it.
+
+The exact content must come from the transcript and summary, not from this
+template.
