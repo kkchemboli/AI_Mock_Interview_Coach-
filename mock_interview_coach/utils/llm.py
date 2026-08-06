@@ -8,9 +8,11 @@ and `chat_json` for strict structured outputs (Groq `json_schema` mode) with
 Transport hardening: `response.choices[0]` is guarded and an empty completion is
 treated as a retryable failure (never silently returned as `""`). Rate-limit
 `Retry-After` headers are honored; otherwise exponential backoff with jitter is
-used, and the whole call sleeps at most `_MAX_BACKOFF_SEC` seconds. The client
-uses the Groq SDK's default timeout, and the reasoning-format decision is
-centralized (auto-detected by model prefix).
+used, and the whole call sleeps at most `LLM_MAX_BACKOFF_SEC` (default 60)
+across `LLM_MAX_ATTEMPTS` (default 3) attempts. The client uses the Groq SDK's
+default timeout, and the reasoning-format decision is centralized
+(auto-detected by model prefix). When `LLM_MIN_INTERVAL_SEC` is set, consecutive
+calls are spaced at least that many seconds apart to stay under RPM/TPM ceilings.
 """
 
 import os
@@ -34,10 +36,35 @@ from mock_interview_coach.utils.parser import extract_json
 DEFAULT_MODEL = "openai/gpt-oss-120b"
 DEFAULT_FALLBACK_MODEL = "openai/gpt-oss-20b"
 
-# Ceiling on total time spent sleeping across a single call's retries.
-_MAX_BACKOFF_SEC = 60.0
 # Random slack added to every computed backoff (seconds).
 _JITTER_SEC = 2.0
+
+# Retry budget defaults. Both are overridable through the environment
+# (LLM_MAX_ATTEMPTS, LLM_MAX_BACKOFF_SEC) so a headless simulation on a
+# rate-limited key can ride out long 429 windows without changing the
+# defaults the live app runs with.
+_DEFAULT_MAX_ATTEMPTS = 3
+_DEFAULT_MAX_BACKOFF_SEC = 60.0
+
+# When LLM_MIN_INTERVAL_SEC is set, `_call` spaces consecutive network calls
+# at least this many seconds apart (a simple global rate limiter). Unset by
+# default so the Streamlit app is unaffected; a simulation can set it to stay
+# under an account's RPM/TPM ceiling.
+_last_call_at = 0.0
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, ""))
+    except (TypeError, ValueError):
+        return default
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, ""))
+    except (TypeError, ValueError):
+        return default
 
 
 class LLMConfigError(RuntimeError):
@@ -163,8 +190,11 @@ def _call(
         kwargs["reasoning_format"] = reasoning_format
     last_error: Exception | None = None
     used_fallback = False
+    max_attempts = _env_int("LLM_MAX_ATTEMPTS", _DEFAULT_MAX_ATTEMPTS)
+    max_backoff = _env_float("LLM_MAX_BACKOFF_SEC", _DEFAULT_MAX_BACKOFF_SEC)
+    _pace_requests(_env_float("LLM_MIN_INTERVAL_SEC", 0.0))
     total_backoff = 0.0
-    for attempt in range(3):
+    for attempt in range(max_attempts):
         try:
             response = client.chat.completions.create(**kwargs)
             if not response.choices:
@@ -184,9 +214,9 @@ def _call(
             ) from exc
         except (_RETRYABLE + (_EmptyResponseError,)) as exc:
             last_error = exc
-            if attempt < 2:
+            if attempt < max_attempts - 1:
                 sleep = _retry_delay(
-                    attempt, exc, _MAX_BACKOFF_SEC - total_backoff
+                    attempt, exc, max_backoff - total_backoff
                 )
                 time.sleep(sleep)
                 total_backoff += sleep
@@ -199,6 +229,19 @@ def _call(
                 used_fallback = True
     assert last_error is not None
     raise last_error
+
+
+def _pace_requests(min_interval: float) -> None:
+    """Sleep so consecutive `_call`s are at least `min_interval` seconds apart.
+    Retries inside a single call keep their own backoff; this only paces the
+    start of each new call."""
+    global _last_call_at
+    if min_interval <= 0.0:
+        return
+    wait = min_interval - (time.monotonic() - _last_call_at)
+    if wait > 0.0:
+        time.sleep(wait)
+    _last_call_at = time.monotonic()
 
 
 def _record_meta(meta: dict | None, model: str, used_fallback: bool) -> None:

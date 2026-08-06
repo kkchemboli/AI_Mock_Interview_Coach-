@@ -198,6 +198,16 @@ class InterviewSession:
             )
             self._log_call("generate_probe", meta)
             if probe is None:
+                # The probe LLM call failed, so the follow_up_probe decision was
+                # never realized. Replace it with the new_topic that actually
+                # happened so the decision log stays truthful.
+                self.decisions[-1] = {
+                    "action": "new_topic",
+                    "reason": "messy_response_exhausted",
+                    "probe": None,
+                    "next_question_type": self.state.next_question_type(),
+                    "difficulty_delta": -1,
+                }
                 self._difficulty = max(1.0, min(10.0, self._difficulty - 1))
                 question = self.next_question()
                 return {"type": "question", "question": question, "reason": "messy_response_exhausted"}
