@@ -14,6 +14,7 @@ from mock_interview_coach.agents._common import (
     _labeled,
     compact_history,
     make_agent,
+    WORD_LIMITS,
 )
 from mock_interview_coach.state.conversation_state import ConversationState
 from mock_interview_coach.utils.parser import QUESTION_SCHEMA
@@ -49,15 +50,15 @@ def _validate(data: dict[str, Any], request: dict[str, Any]) -> str | None:
     problem = nonempty(data.get("question_text"), "question_text")
     if problem is not None:
         return problem
-    return word_limit(data.get("question_text"), 120, "question_text")
+    return word_limit(data.get("question_text"), WORD_LIMITS["interviewer"], "question_text")
 
 
 def _repair_hint(data: dict[str, Any], request: dict[str, Any]) -> str:
     return (
         f"Your question was rejected: question_type must be exactly "
         f"{request.get('question_type')!r} and question_text must be a natural, "
-        "non-empty question of at most 120 words. Re-emit the question "
-        "fixing that."
+        f"non-empty question of at most {WORD_LIMITS['interviewer']} words. "
+        "Re-emit the question fixing that."
     )
 
 

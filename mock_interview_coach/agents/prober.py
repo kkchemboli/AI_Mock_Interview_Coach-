@@ -11,16 +11,16 @@ allowed value for the stage. If the LLM call fails, the probe is skipped
 from typing import Any
 
 from mock_interview_coach.agents._common import (
-    _LIMITS,
-    _bounded,
+    _bounded_answer,
     _bounded_evaluation,
     _bounded_question,
     _labeled,
     make_agent,
+    WORD_LIMITS,
 )
 from mock_interview_coach.state.conversation_state import ConversationState
 from mock_interview_coach.utils.parser import PROBE_SCHEMA
-from mock_interview_coach.utils.validation import nonempty
+from mock_interview_coach.utils.validation import nonempty, word_limit
 
 _ALLOWED_FOR_STAGE: dict[int, tuple[str, ...]] = {
     0: ("deepen", "redirect"),
@@ -46,7 +46,7 @@ def _build_context(
         },
         "untrusted_persona": _labeled(state.persona_for("prober"), "persona_llm"),
         "untrusted_question": _labeled(_bounded_question(question), "interviewer_llm"),
-        "untrusted_candidate_answer": _bounded(answer_text, "candidate_submission", _LIMITS["answer"]),
+        "untrusted_candidate_answer": _bounded_answer(answer_text, question),
         "untrusted_evaluation": _labeled(_bounded_evaluation(evaluation), "evaluator_llm"),
     }
 
@@ -62,7 +62,12 @@ def _validate(data: dict[str, Any], request: dict[str, Any]) -> str | None:
             f"probe_type {data.get('probe_type')!r} is not allowed at "
             f"escalation_stage {request.get('escalation_stage', 0)}"
         )
-    return nonempty(data.get("question_text"), "question_text")
+    problem = nonempty(data.get("question_text"), "question_text")
+    if problem is not None:
+        return problem
+    return word_limit(
+        data.get("question_text"), WORD_LIMITS["prober"], "question_text"
+    )
 
 
 def _repair(data: dict[str, Any], request: dict[str, Any]) -> dict[str, Any]:

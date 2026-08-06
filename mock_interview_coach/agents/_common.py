@@ -33,6 +33,7 @@ _TRUNCATION_MARKER = "\n… [truncated]"
 _LIMITS = {
     "role": 200,
     "answer": 2000,
+    "code_answer": 6000,
     "question": 500,
     "context": 300,
     "probe": 200,
@@ -41,6 +42,19 @@ _LIMITS = {
     "persona_field": 400,
     "summary_field": 500,
 }
+
+# Model-facing word budgets. The prompt templates and the deterministic
+# validators read these from the same source so they can never drift apart.
+WORD_LIMITS = {
+    "interviewer": 120,
+    "prober": 60,
+    "coach": 400,
+}
+
+# Total serialized-payload budget for the user message. History that pushes a
+# call past this is compacted adaptively (oldest turns dropped) in
+# `compact_history`, on top of the per-field caps above.
+MAX_PAYLOAD_CHARS = 12_000
 
 # One shared untrusted-input policy for all five agents. Injection via dynamic
 # content is a *data* problem, so the fix is explicit role separation rather
@@ -114,6 +128,19 @@ def _bounded_evaluation(evaluation: dict[str, Any] | None) -> dict[str, Any]:
         "suspected_root_cause": evaluation.get("suspected_root_cause"),
         "interviewer_note": _truncate(_normalize(evaluation.get("interviewer_note", "")), _LIMITS["note"]),
     }
+
+
+def _bounded_answer(answer_text: str, question: dict[str, Any] | None) -> dict[str, Any]:
+    """Bound a candidate answer; code answers get a larger budget so a full
+    solution (several functions) is scored, not a truncated fragment."""
+    expects_code = bool((question or {}).get("expects_code"))
+    limit = _LIMITS["code_answer"] if expects_code else _LIMITS["answer"]
+    return _bounded(answer_text, "candidate_submission", limit)
+
+
+def estimate_tokens(text: str) -> int:
+    """Cheap token heuristic (~4 chars per token), used for payload budgeting."""
+    return max(1, len(str(text)) // 4)
 
 
 def build_messages(system: str, context: dict[str, Any]) -> list[dict]:
@@ -235,7 +262,12 @@ def make_agent(
             if schema is not None:
                 return _structured(messages, request, config, meta)
             return _text(messages, request, config, meta)
-        except Exception:
+        except Exception as exc:
+            # Preserve a short diagnostic for callers such as the live eval
+            # harness.  The production fallback remains safe and does not
+            # expose provider messages to interview candidates.
+            if meta is not None:
+                meta["error_type"] = type(exc).__name__
             if on_error is not None:
                 return on_error(request)
             raise
@@ -247,10 +279,13 @@ def compact_history(
     state: ConversationState,
     include_evaluations: bool = False,
     limit: int | None = None,
+    max_chars: int = MAX_PAYLOAD_CHARS,
 ) -> list[dict[str, Any]]:
     """Bounded, origin-labeled history: every entry tags the question as
     interviewer-generated, each answer as candidate-submitted, and (optionally)
-    the evaluation as evaluator-generated."""
+    the evaluation as evaluator-generated. `limit` keeps only the most recent
+    turns; on top of that, the serialized history is compacted adaptively
+    (oldest turns dropped) so the payload never exceeds `max_chars`."""
     turns = state.turns[-limit:] if limit is not None else state.turns
     entries = []
     for turn in turns:
@@ -285,4 +320,8 @@ def compact_history(
             answers.append(item)
         entry["answers"] = answers
         entries.append(entry)
+    serialized = json.dumps(entries)
+    while len(serialized) > max_chars and len(entries) > 1:
+        entries.pop(0)
+        serialized = json.dumps(entries)
     return entries

@@ -96,11 +96,13 @@ class InterviewSession:
         self.state.start_turn(question)
         return question
 
-    @staticmethod
-    def _sanitize_answer(answer_text: str) -> str:
+    def _sanitize_answer(self, answer_text: str) -> str:
         """Normalize and bound candidate text before it enters state, so no
-        model call ever receives unbounded or control-character-laden input."""
-        return _truncate(_normalize(answer_text), _LIMITS["answer"])
+        model call ever receives unbounded or control-character-laden input.
+        Code answers get a larger budget (see `_LIMITS["code_answer"]`)."""
+        question = self.current_question or {}
+        limit = _LIMITS["code_answer"] if question.get("expects_code") else _LIMITS["answer"]
+        return _truncate(_normalize(answer_text), limit)
 
     def submit_answer(self, answer_text: str) -> dict[str, Any]:
         """Record a top-level answer, evaluate it, and return the next event."""

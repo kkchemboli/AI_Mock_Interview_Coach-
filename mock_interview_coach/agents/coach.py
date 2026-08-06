@@ -12,9 +12,10 @@ from typing import Any
 from mock_interview_coach.agents._common import (
     compact_history,
     make_agent,
+    WORD_LIMITS,
 )
 from mock_interview_coach.state.conversation_state import ConversationState
-from mock_interview_coach.utils.validation import sections_present
+from mock_interview_coach.utils.validation import sections_present, word_limit
 
 _REQUIRED_HEADERS = (
     "## What went well",
@@ -52,7 +53,10 @@ def _build_context(
 
 
 def _validate(text: str, request: dict[str, Any]) -> str | None:
-    return sections_present(text, _REQUIRED_HEADERS)
+    problem = sections_present(text, _REQUIRED_HEADERS)
+    if problem is not None:
+        return problem
+    return word_limit(text, WORD_LIMITS["coach"], "debrief")
 
 
 def _repair_hint(data: dict[str, Any], request: dict[str, Any]) -> str:

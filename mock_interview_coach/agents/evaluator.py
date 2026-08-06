@@ -10,11 +10,11 @@ call cannot produce a valid evaluation, a neutral evaluation marked
 it.
 """
 
+import re
 from typing import Any
 
 from mock_interview_coach.agents._common import (
-    _LIMITS,
-    _bounded,
+    _bounded_answer,
     _bounded_question,
     _labeled,
     make_agent,
@@ -57,7 +57,7 @@ def _build_context(
         },
         "untrusted_persona": _labeled(state.persona_for("evaluator"), "persona_llm"),
         "untrusted_question": _labeled(_bounded_question(question), "interviewer_llm"),
-        "untrusted_candidate_answer": _bounded(answer_text, "candidate_submission", _LIMITS["answer"]),
+        "untrusted_candidate_answer": _bounded_answer(answer_text, question),
     }
 
 
@@ -80,15 +80,43 @@ def _validate(data: dict[str, Any], request: dict[str, Any]) -> str | None:
         problem = nonempty(rationale.get(d), f"score_rationale.{d}")
         if problem is not None:
             return problem
+        if not _has_grounded_quote(rationale[d], request.get("answer_text", "")):
+            return f"score_rationale.{d} must quote candidate-answer evidence"
     return enum_allowed(data.get("response_type"), RESPONSE_TYPES, "response_type")
+
+
+def _has_grounded_quote(rationale: str, answer: str) -> bool:
+    """Ensure a score rationale cites the candidate answer, not the prompt.
+
+    An ellipsis may join two exact fragments, provided both fragments occur in
+    order. This mirrors the eval harness and permits concise citations without
+    accepting an invented paraphrase as evidence.
+    """
+    answer_text = " ".join(str(answer).lower().split())
+    quotes = re.findall(r'["“]([^"”]+)["”]', str(rationale))
+    for quote in quotes:
+        cursor = 0
+        fragments = [" ".join(item.lower().split()) for item in re.split(r"(?:\.\.\.|…)", quote)]
+        fragments = [item for item in fragments if item]
+        if not fragments:
+            continue
+        for fragment in fragments:
+            index = answer_text.find(fragment, cursor)
+            if index < 0:
+                break
+            cursor = index + len(fragment)
+        else:
+            return True
+    return False
 
 
 def _repair_hint(data: dict[str, Any], request: dict[str, Any]) -> str:
     return (
         "Your evaluation was rejected: every dimension must have an integer "
         "score 1-5, and score_rationale must quote the exact words or numbers "
-        "from the candidate's answer that justify each score. Re-emit the "
-        "evaluation with concrete quoted evidence."
+        "from the candidate's answer that justify each score. Do not quote the "
+        "question. Put at least one candidate-answer quote in double quotes in "
+        "every rationale, then re-emit the evaluation."
     )
 
 
