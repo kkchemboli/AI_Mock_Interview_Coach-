@@ -84,6 +84,7 @@ def _consume_event(event: dict) -> None:
     else:
         st.session_state.phase = "done"
         _append("assistant", "The interview has ended — generating your report.")
+        _ensure_report()
 
 
 def _ensure_report() -> dict:
