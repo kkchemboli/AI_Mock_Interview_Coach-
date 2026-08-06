@@ -7,23 +7,25 @@ from the dimension mean so downstream trend math stays exact.
 
 from typing import Any
 
-from mock_interview_coach.agents._common import build_messages as _build_messages
-from mock_interview_coach.agents._common import load_prompt, recent_evaluations
+from mock_interview_coach.agents._common import make_agent, recent_evaluations
 from mock_interview_coach.state.conversation_state import ConversationState
-from mock_interview_coach.utils.llm import LLMConfig, chat_json
-from mock_interview_coach.utils.parser import DIMENSIONS, EVALUATION_SCHEMA, clamp_score, compute_overall
+from mock_interview_coach.utils.parser import (
+    DIMENSIONS,
+    EVALUATION_SCHEMA,
+    clamp_score,
+    compute_overall,
+)
 
-EVALUATOR_SYSTEM = load_prompt("evaluator")
 
-
-def build_messages(
+def _build_context(
     role: str,
     state: ConversationState,
     *,
     question: dict[str, Any],
     answer_text: str,
-) -> list[dict]:
-    context = {
+    **kwargs: Any,
+) -> dict[str, Any]:
+    return {
         "role": role,
         "seniority": state.config.seniority,
         "focus": state.config.focus,
@@ -32,23 +34,15 @@ def build_messages(
         "answer_text": answer_text,
         "recent_evaluations": recent_evaluations(state),
     }
-    return _build_messages(EVALUATOR_SYSTEM, context)
 
 
-def run(
-    role: str,
-    state: ConversationState,
-    *,
-    question: dict[str, Any],
-    answer_text: str,
-    config: LLMConfig | None = None,
-) -> dict[str, Any]:
-    data = chat_json(
-        build_messages(role, state, question=question, answer_text=answer_text),
-        schema=EVALUATION_SCHEMA,
-        config=config,
-    )
+def _postprocess(data: dict[str, Any]) -> dict[str, Any]:
     dims = {d: clamp_score(data["dimension_scores"].get(d, 3.0)) for d in DIMENSIONS}
     data["dimension_scores"] = dims
     data["overall"] = compute_overall(dims)
     return data
+
+
+build_messages, run = make_agent(
+    "evaluator", _build_context, schema=EVALUATION_SCHEMA, postprocess=_postprocess
+)

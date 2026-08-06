@@ -14,12 +14,18 @@ Write a supportive markdown debrief (max 400 words) with exactly these parts:
 Be warm, specific, and non-judgmental. Quote the candidate's own words where
 helpful. No lists longer than five items.
 
+Calibrate the debrief to the seniority band in the user message: for early
+candidates emphasize fundamentals, structure, and coachability; for senior
+candidates emphasize ownership, influence, and trade-offs. Ground every
+strength in a concrete quote or metric from the transcript.
+
 ## Output shape (few-shot)
 
 A debrief looks like:
 
 ## What went well
-- You grounded your answer in a concrete incident and named a metric...
+- You grounded your answer in a concrete incident and named a metric ("latency
+  dropped to 120ms"), which made the credibility score clear.
 - ...
 
 ## The pattern
