@@ -23,6 +23,8 @@ from scripts.personas import find_preset, preset_labels
 
 PRESET_LABELS = ["Custom"] + preset_labels()
 
+_ERROR_PREFIX = "The interview agent hit an error (rate limit?)"
+
 
 def _init_state() -> None:
     st.session_state.setdefault("session", None)
@@ -46,10 +48,6 @@ def _format_question(q: dict) -> str:
     return "\n\n".join(parts)
 
 
-def _format_probe(probe: dict, stage: int) -> str:
-    return str(probe.get("question_text"))
-
-
 def _start(role: str, seniority: str, focus: str, difficulty: float) -> None:
     config = InterviewConfig(seniority=seniority, focus=focus, difficulty=difficulty)
     session = InterviewSession(role, config)
@@ -70,7 +68,7 @@ def _submit_response(text: str) -> None:
         else:
             event = session.submit_answer(text)
     except Exception as exc:  # noqa: BLE001
-        st.session_state.error = f"The interview agent hit an error (rate limit?): {exc}"
+        st.session_state.error = f"{_ERROR_PREFIX}: {exc}"
         st.rerun()
     st.session_state.error = None
     _consume_event(event)
@@ -79,7 +77,7 @@ def _submit_response(text: str) -> None:
 def _consume_event(event: dict) -> None:
     if event["type"] == "probe":
         st.session_state.phase = "probe"
-        _append("assistant", _format_probe(event["probe"], event["stage"]))
+        _append("assistant", str(event["probe"].get("question_text")))
     elif event["type"] == "question":
         st.session_state.phase = "question"
         _append("assistant", _format_question(event["question"]))
@@ -131,9 +129,7 @@ def _render_sidebar() -> None:
             focus = st.sidebar.selectbox(
                 "Focus", FOCUS_AREAS, index=FOCUS_AREAS.index(preset["focus"]), disabled=True,
             )
-            difficulty = st.sidebar.slider(
-                "Base difficulty", 1.0, 10.0, preset["difficulty"], 0.5, disabled=True,
-            )
+            difficulty = preset["difficulty"]
             st.sidebar.info(
                 f"{preset['role']} · {preset['seniority']}/{preset['focus']} · {preset['difficulty']}"
             )
@@ -141,7 +137,7 @@ def _render_sidebar() -> None:
             role = st.sidebar.text_input("Role", "Backend Engineer")
             seniority = st.sidebar.selectbox("Seniority", SENIORITY_BANDS, index=1)
             focus = st.sidebar.selectbox("Focus", FOCUS_AREAS, index=3)
-            difficulty = st.sidebar.slider("Base difficulty", 1.0, 10.0, 5.0, 0.5)
+            difficulty = 5.0
         if st.sidebar.button(
             "Start interview", type="primary", icon=":material/play_arrow:",
             width="stretch",
@@ -194,7 +190,7 @@ def _render_input() -> None:
                     _submit_response(text)
                 st.rerun()
     except Exception as exc:  # noqa: BLE001
-        st.error(f"The interview agent hit an error (rate limit?): {exc}")
+        st.error(f"{_ERROR_PREFIX}: {exc}")
 
 
 def _render_done() -> None:

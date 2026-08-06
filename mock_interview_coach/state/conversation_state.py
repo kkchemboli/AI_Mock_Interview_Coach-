@@ -231,7 +231,10 @@ class ConversationState:
         if self.persona is None:
             return None
         if agent == "interviewer":
-            return self.persona
+            return {
+                "vibe": self.persona["persona"]["vibe"],
+                "edge_case_style": self.persona["edge_case_style"],
+            }
         if agent == "prober":
             return {
                 "vibe": self.persona["persona"]["vibe"],

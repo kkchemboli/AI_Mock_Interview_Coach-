@@ -148,10 +148,3 @@ def chat_json(
     raw = _call(messages, config=config, temperature=temperature,
                 max_tokens=max_tokens, extra=extra)
     return extract_json(raw)
-
-
-def system_user_messages(system: str, user: str) -> list[dict]:
-    return [
-        {"role": "system", "content": system},
-        {"role": "user", "content": user},
-    ]

@@ -86,6 +86,7 @@ class InterviewSession:
             history_limit=self.history_limit,
             config=self.config_obj,
         )
+        question["difficulty"] = self._difficulty
         self.state.start_turn(question)
         return question
 

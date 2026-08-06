@@ -104,11 +104,10 @@ QUESTION_SCHEMA = structured_schema(
         "properties": {
             "question_text": {"type": "string"},
             "question_type": {"type": "string", "enum": list(QUESTION_TYPES)},
-            "difficulty": {"type": "number", "minimum": 1.0, "maximum": 10.0},
             "expects_code": {"type": "boolean"},
             "context": {"type": "string"},
         },
-        "required": ["question_text", "question_type", "difficulty", "expects_code", "context"],
+        "required": ["question_text", "question_type", "expects_code", "context"],
         "additionalProperties": False,
     },
 )
@@ -124,7 +123,6 @@ EVALUATION_SCHEMA = structured_schema(
                 "required": list(DIMENSIONS),
                 "additionalProperties": False,
             },
-            "overall": {"type": "number", "minimum": 1.0, "maximum": 5.0},
             "strengths": {"type": "array", "items": {"type": "string"}},
             "gaps": {"type": "array", "items": {"type": "string"}},
             "suspected_root_cause": {"type": "string", "enum": [*ROOT_CAUSES, "none"]},
@@ -133,7 +131,6 @@ EVALUATION_SCHEMA = structured_schema(
         },
         "required": [
             "dimension_scores",
-            "overall",
             "strengths",
             "gaps",
             "suspected_root_cause",
