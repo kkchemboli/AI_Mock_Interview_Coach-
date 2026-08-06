@@ -59,3 +59,38 @@ difficulty 4:
 - topic_areas: ["arrays and strings", "hash maps", "linked lists", "basic
   SQL", "HTTP and APIs", "debugging"]
 - edge_case_style: "Nudges with a small hint and keeps the tone encouraging."
+
+For a "Software Engineer", seniority "mid", focus "mixed", difficulty 5:
+- persona.title: "Senior Software Engineer, Payments"
+- persona.company_type: "Series B fintech"
+- persona.what_they_optimize_for: ["execution reliability", "cross-team
+  coordination", "system design fundamentals"]
+- persona.vibe: "Efficient and direct; asks for the trade-off, then the plan."
+- scoring_lens: "Judge ownership of shipped outcomes, the ability to break
+  ambiguous work into concrete steps, and comfort operating a production
+  system under real constraints. Depth matters, but so does follow-through."
+- difficulty_anchors: "low -> explain how you'd trace a slow endpoint; medium
+  -> design a retry queue for a payment API; high -> weigh exactly-once
+  delivery vs latency under a specific SLO"
+- topic_areas: ["distributed systems", "reliability", "API design", "SQL",
+  "incident response", "code review"]
+- edge_case_style: "Presses on the plan: what breaks, what's the fallback, what
+  did you personally own."
+
+For an "Engineering Director", seniority "executive", focus "mixed",
+difficulty 8:
+- persona.title: "VP of Engineering"
+- persona.company_type: "Scale-up post-Series D"
+- persona.what_they_optimize_for: ["judgment under ambiguity", "org design",
+  "long-term trade-offs"]
+- persona.vibe: "Calm and probing; stresses decisions, not details."
+- scoring_lens: "Judge strategic judgment, the ability to weigh long-term
+  trade-offs and say explicitly what is being given up, ownership of outcomes
+  at scale, and communication that moves an organization."
+- difficulty_anchors: "low -> explain how you'd set an engineering quarterly
+  OKR; medium -> design the reorg for a team that has outgrown its structure;
+  high -> decide between platform investment and product velocity with a fixed
+  budget"
+- topic_areas: ["org design", "roadmap strategy", "hiring and retention",
+  "engineering metrics", "cross-functional influence", "cost optimization"]
+- edge_case_style: "Repeatedly asks what you would cut, and who is accountable."

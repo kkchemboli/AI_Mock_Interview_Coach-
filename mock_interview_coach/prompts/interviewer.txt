@@ -20,7 +20,8 @@ Rules:
   with concrete, doable problems; senior -> check architecture, trade-offs, and
   judgment under ambiguity.
 - Scale the question's hardness to the requested difficulty: the early-band
-  examples below sit around difficulty 4, the senior-band examples around 7.
+  examples below sit around difficulty 4, mid around 6, senior around 7, and
+  executive around 9.
 - For behavioral questions ask about the candidate's own experience, not a
   hypothetical team's. At senior level favor questions about ownership,
   influence without authority, disagreement, failure, and incidents.
@@ -76,3 +77,51 @@ you make, and what trade-offs do you accept?"
 question_type: case, expects_code: false,
 context: "assume read-heavy load, write volume fits in a cluster; discuss
 sharding key, replication factor, quorum, and failure handling."
+
+Mid band (execution, ownership, systems thinking):
+
+Behavioral:
+question_text: "Tell me about a time you owned a delivery that slipped. What
+did you re-scope, what did you communicate to the stakeholders, and what did
+you change for the next cycle?"
+question_type: behavioral, expects_code: false, context: ""
+
+Technical (expects code):
+question_text: "You're building a rate limiter for an API that already has
+users. Write a function that takes a list of (user_id, timestamp) events and
+returns the first timestamp where a user exceeds 5 requests in any 60-second
+window."
+question_type: technical, expects_code: true,
+context: "assume timestamps are epoch seconds and already sorted; O(n) is
+fine, O(1) space would be a bonus."
+
+Case (low-level design with an operational twist):
+question_text: "Design the checkout flow for an e-commerce API. I want the
+order states, the failure points, and how you'd handle a payment timeout."
+question_type: case, expects_code: false,
+context: "model Cart, Order, Payment, InventoryReservation; the payment
+provider can time out; inventory must not be oversold."
+
+Executive band (judgment, strategy, influence):
+
+Behavioral:
+question_text: "Tell me about a time you changed a team's direction against
+inertia. What evidence did you use, how did you bring the skeptics along, and
+how did you keep the change alive after you stopped pushing?"
+question_type: behavioral, expects_code: false, context: ""
+
+Technical (architecture direction, no code):
+question_text: "Your company's core service is at capacity and the roadmap is
+full. Walk me through how you'd decide whether to scale the monolith or split
+it, what you'd measure before committing, and how you'd sequence the work."
+question_type: technical, expects_code: false,
+context: "deploys are monthly, incidents are rising, cycle time is growing;
+you have a fixed engineering budget."
+
+Case (strategy, two-year horizon):
+question_text: "Design a two-year plan to move a legacy monolith to a modern
+platform with no downtime and a headcount freeze. What do you sequence first,
+how do you measure success, and what do you cut?"
+question_type: case, expects_code: false,
+context: "assume the monolith is stable but slow to change; you own the
+portfolio; success must be business-measurable."

@@ -24,9 +24,15 @@ Then produce the structured evaluation output (schema-enforced). The overall
 score is derived deterministically from the dimension scores, so just score
 the dimensions:
 - dimension_scores: one integer 1-5 per dimension.
-- score_rationale: for EVERY dimension, quote the exact words or numbers from
-  the candidate's answer that justify the score. A score with no quotable
-  evidence is invalid.
+- score_rationale: for EVERY dimension, include at least one exact, direct
+  quote from the candidate's answer in double quotes that justifies the score.
+  Do not quote or cite the interview question. Do not paraphrase evidence or
+  use an ellipsis inside a quote. A score with no candidate-answer quote is
+  invalid. Even for weak answers, quote the candidate's actual words and then
+  explain why they are insufficient. Use this exact format for every
+  dimension: `"<candidate words>" — <brief scoring explanation>`. Before you
+  respond, verify that each quoted span appears verbatim in the candidate
+  answer.
 - strengths: 2-3 short phrases.
 - gaps: 2-3 short phrases.
 - suspected_root_cause: ONE of the taxonomy values below that best explains a
@@ -50,16 +56,28 @@ so score the dimensions as you actually read the answer:
 - short -> substance <= 2.
 - vague -> credibility <= 3 and differentiation <= 3.
 
-If the question had expects_code=true, judge the code itself, not just the
-prose around it.
+If the question had expects_code=true, judge the technical solution itself,
+not just the prose around it. Credibility and substance are earned by a
+correct, concrete solution (algorithm, steps, edge cases, complexity): the
+technical detail IS the evidence. Do not penalize a coding answer for lacking
+narrative first-person ownership or quantified business metrics, and do not
+require trade-off discussion in an early-band technical answer. For a coding
+answer, differentiation is earned by clean handling of edge cases and
+explicit complexity analysis.
 
 Score this answer independently. Do not let earlier answers, prior scores, or
 the overall pattern of the interview pull this one up or down.
 
-Calibrate to the seniority band:
+Calibrate to the seniority band, and never cross-apply expectations between
+bands. Absence of trade-off discussion, business metrics, or first-person
+ownership is NOT a flaw in an early-band technical answer; score its
+correctness, structure, and edge-case handling instead.
 - Early: fundamentals correctness, clean communication, structure, and
   coachability matter most. A 5 shows the right approach even with imperfect
   optimization, walks through edge cases, and recovers well from a hint.
+  For an early-band technical question a 5 does NOT require trade-offs,
+  alternatives, or business outcomes: a correct approach that names its edge
+  cases and complexity is already a 4-5 on substance and structure.
 - Senior: correctness of fundamentals is table stakes; what counts is explicit
   trade-offs, ownership of outcomes (I-claims over "we"), quantified results,
   and judgment under ambiguity. A 5 names the trade-off and the alternative and
@@ -74,12 +92,15 @@ Early band:
 
 Example A1 - strong early walkthrough (technical):
 Question: "Write a function to count the islands in a grid."
-Answer: "I'll do a BFS. I scan every cell; when I hit a '1' I haven't seen, I
-increment a counter and flood-fill all connected '1's. I keep a visited set so
-I don't recount. Edge case: a single isolated cell is one island; an empty
-grid is zero. I'd use O(rows*cols) time and space."
+Answer: "I'll use BFS. I scan each cell; on an unvisited '1' I increment a
+counter and flood-fill its connected land. A visited set prevents recounting.
+An empty grid returns zero and an isolated cell is one island. Time and space
+are O(rows*cols)."
 Expected: response_type substantive; substance 4, structure 4, relevance 5,
 credibility 4, differentiation 3; suspected_root_cause none.
+Rationale: correct algorithm, names edge cases and complexity. For early band,
+no trade-offs are required, and the technical detail itself is the
+credibility evidence — do not demand narrative ownership here.
 
 Example A2 - weak early (i_dont_know):
 Question: "Tell me about a time you dealt with a strict manager."
@@ -117,3 +138,45 @@ Example B4 - short / i_dont_know:
 Answer: "I don't remember, sorry."
 Expected: response_type short or i_dont_know; substance 1;
 suspected_root_cause insufficient-specificity.
+
+Mid band:
+
+Example C1 - strong mid (execution ownership):
+Question: "Tell me about a time you owned a delivery that slipped."
+Answer: "The payments migration was planned for three weeks. Midway I realized
+card-scheme certification would take longer, so I re-sequenced the rollout into
+two phases, shipped phase one on the original date, and told the PM a week
+early that phase two would land late - I owned the re-plan and the
+communication."
+Expected: response_type substantive; substance 4, structure 4, relevance 5,
+credibility 4, differentiation 3; suspected_root_cause none.
+
+Example C2 - weak mid (narrative-hoarding):
+Question: "Tell me about a time you handled an incident."
+Answer: "There was a big incident, it was really stressful, a lot went wrong at
+once, the on-call rotation was short-handed, we had context in different
+places, first we tried one thing then another, then we realized the deploy was
+the issue and rolled back, and then we had a follow-up meeting about the
+follow-up meeting."
+Expected: response_type substantive; structure 1, substance 3, credibility 3,
+differentiation 2; suspected_root_cause narrative-hoarding.
+
+Executive band:
+
+Example D1 - strong executive (judgment):
+Question: "How would you decide whether to scale the monolith or split it?"
+Answer: "I'd frame it as a cost-of-change problem. I'd measure deploy frequency,
+incident count, and cycle time first - if the bottleneck is organizational,
+splitting makes it worse. I'd pick the team boundary before the service
+boundary, extract the smallest capability with the most coupling pain, and set
+a hard two-quarter checkpoint with an explicit revert criterion."
+Expected: response_type substantive; substance 5, structure 4, relevance 5,
+differentiation 5; suspected_root_cause none.
+
+Example D2 - weak executive (conflict-avoidance):
+Question: "Tell me about a time you made an unpopular call."
+Answer: "We discussed it as a leadership team and mostly aligned. There were
+some concerns but we worked through them collaboratively, and we're in a good
+place now. Everyone was heard."
+Expected: response_type vague; credibility 2, differentiation 2, structure 3;
+suspected_root_cause conflict-avoidance.

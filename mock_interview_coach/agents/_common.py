@@ -268,6 +268,7 @@ def make_agent(
             # expose provider messages to interview candidates.
             if meta is not None:
                 meta["error_type"] = type(exc).__name__
+                meta["error_summary"] = " ".join(str(exc).split())[:300]
             if on_error is not None:
                 return on_error(request)
             raise
