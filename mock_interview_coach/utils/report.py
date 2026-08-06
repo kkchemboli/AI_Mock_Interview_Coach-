@@ -100,6 +100,21 @@ def report_markdown(
     )
     parts.append(f"- Trend: {summary['trend']} · Overall average: {summary['overall_average']}")
     parts.append("")
+    parts.append("## Methodology")
+    call_log = getattr(state, "call_log", [])
+    eval_log = [c for c in call_log if c.get("agent") == "evaluate_answer"]
+    models = sorted({c.get("model") for c in eval_log if c.get("model")})
+    fell_back = any(c.get("fallback") for c in eval_log)
+    unvalidated = False
+    for turn in state.turns:
+        for answer in turn.answers:
+            provenance = answer.get("provenance") or {}
+            if provenance.get("validated") is False:
+                unvalidated = True
+    parts.append(f"- Evaluator model: {', '.join(models) if models else 'not recorded'}")
+    parts.append(f"- Model fallback used: {'yes' if fell_back else 'no'}")
+    parts.append(f"- All evaluations validated: {'no' if unvalidated else 'yes'}")
+    parts.append("")
     parts.append("## Coach")
     parts.append(narrative or "*Coach narrative not available.*")
     return "\n".join(parts)

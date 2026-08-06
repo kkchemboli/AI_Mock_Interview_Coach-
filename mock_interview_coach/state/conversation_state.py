@@ -118,6 +118,7 @@ class ConversationState:
         self.covered_types: dict[str, int] = {t: 0 for t in QUESTION_TYPES}
         self.root_cause_counts: dict[str, int] = {}
         self.consecutive_probes = 0
+        self.call_log: list[dict[str, Any]] = []
 
     @property
     def current_turn(self) -> Turn | None:
@@ -171,11 +172,14 @@ class ConversationState:
         if probe is not None:
             self.consecutive_probes += 1
 
-    def record_evaluation(self, evaluation: dict[str, Any]) -> None:
+    def record_evaluation(
+        self, evaluation: dict[str, Any], provenance: dict[str, Any] | None = None
+    ) -> None:
         last = self.current_turn.last_answer if self.current_turn else None
         if last is None:
             raise ValueError("no answer to evaluate")
         last["evaluation"] = evaluation
+        last["provenance"] = provenance
         dims = evaluation.get("dimension_scores", {})
         for d in DIMENSIONS:
             self.dim_histories[d].append(float(dims.get(d, 1.0)))

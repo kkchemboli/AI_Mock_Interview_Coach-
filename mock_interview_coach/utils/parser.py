@@ -14,6 +14,7 @@ RESPONSE_TYPES = ("substantive", "vague", "off_topic", "i_dont_know", "short")
 PROBE_TYPES = ("deepen", "redirect", "scaffold", "hint")
 FOCUS_AREAS = ("behavioral", "technical", "case", "mixed")
 SENIORITY_BANDS = ("early", "mid", "senior", "executive")
+RATING_SCALE = (1, 2, 3, 4, 5)
 ROOT_CAUSES = (
     "inability-to-identify-question-core",
     "reflexive-we",
@@ -21,6 +22,7 @@ ROOT_CAUSES = (
     "status-anxiety",
     "narrative-hoarding",
     "fear-of-being-wrong",
+    "insufficient-specificity",
 )
 
 
@@ -39,7 +41,7 @@ def compute_overall(dim_scores: dict) -> float:
     values = [dim_scores[d] for d in DIMENSIONS if d in dim_scores]
     if not values:
         return 0.0
-    return round(sum(values) / len(values), 2)
+    return round(sum(values) / len(values), 1)
 
 
 def extract_json(text: str) -> dict:
@@ -70,27 +72,37 @@ PERSONA_SCHEMA = structured_schema(
             "persona": {
                 "type": "object",
                 "properties": {
-                    "title": {"type": "string"},
-                    "company_type": {"type": "string"},
-                    "what_they_optimize_for": {"type": "array", "items": {"type": "string"}},
-                    "vibe": {"type": "string"},
+                    "title": {"type": "string", "maxLength": 120},
+                    "company_type": {"type": "string", "maxLength": 120},
+                    "what_they_optimize_for": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 4,
+                        "items": {"type": "string", "maxLength": 100},
+                    },
+                    "vibe": {"type": "string", "maxLength": 200},
                 },
                 "required": ["title", "company_type", "what_they_optimize_for", "vibe"],
                 "additionalProperties": False,
             },
-            "scoring_lens": {"type": "string"},
+            "scoring_lens": {"type": "string", "maxLength": 600},
             "difficulty_anchors": {
                 "type": "object",
                 "properties": {
-                    "low": {"type": "string"},
-                    "medium": {"type": "string"},
-                    "high": {"type": "string"},
+                    "low": {"type": "string", "maxLength": 200},
+                    "medium": {"type": "string", "maxLength": 200},
+                    "high": {"type": "string", "maxLength": 200},
                 },
                 "required": ["low", "medium", "high"],
                 "additionalProperties": False,
             },
-            "topic_areas": {"type": "array", "items": {"type": "string"}},
-            "edge_case_style": {"type": "string"},
+            "topic_areas": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 8,
+                "items": {"type": "string", "maxLength": 100},
+            },
+            "edge_case_style": {"type": "string", "maxLength": 200},
         },
         "required": ["persona", "scoring_lens", "difficulty_anchors", "topic_areas", "edge_case_style"],
         "additionalProperties": False,
@@ -102,10 +114,10 @@ QUESTION_SCHEMA = structured_schema(
     {
         "type": "object",
         "properties": {
-            "question_text": {"type": "string"},
+            "question_text": {"type": "string", "maxLength": 500},
             "question_type": {"type": "string", "enum": list(QUESTION_TYPES)},
             "expects_code": {"type": "boolean"},
-            "context": {"type": "string"},
+            "context": {"type": "string", "maxLength": 300},
         },
         "required": ["question_text", "question_type", "expects_code", "context"],
         "additionalProperties": False,
@@ -119,18 +131,35 @@ EVALUATION_SCHEMA = structured_schema(
         "properties": {
             "dimension_scores": {
                 "type": "object",
-                "properties": {d: {"type": "number", "minimum": 1.0, "maximum": 5.0} for d in DIMENSIONS},
+                "properties": {d: {"type": "integer", "enum": list(RATING_SCALE)} for d in DIMENSIONS},
                 "required": list(DIMENSIONS),
                 "additionalProperties": False,
             },
-            "strengths": {"type": "array", "items": {"type": "string"}},
-            "gaps": {"type": "array", "items": {"type": "string"}},
+            "score_rationale": {
+                "type": "object",
+                "properties": {d: {"type": "string", "maxLength": 400} for d in DIMENSIONS},
+                "required": list(DIMENSIONS),
+                "additionalProperties": False,
+            },
+            "strengths": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 4,
+                "items": {"type": "string", "maxLength": 200},
+            },
+            "gaps": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 4,
+                "items": {"type": "string", "maxLength": 200},
+            },
             "suspected_root_cause": {"type": "string", "enum": [*ROOT_CAUSES, "none"]},
             "response_type": {"type": "string", "enum": list(RESPONSE_TYPES)},
-            "interviewer_note": {"type": "string"},
+            "interviewer_note": {"type": "string", "maxLength": 300},
         },
         "required": [
             "dimension_scores",
+            "score_rationale",
             "strengths",
             "gaps",
             "suspected_root_cause",
@@ -148,7 +177,7 @@ PROBE_SCHEMA = structured_schema(
         "properties": {
             "probe_type": {"type": "string", "enum": list(PROBE_TYPES)},
             "target_dimension": {"type": "string", "enum": list(DIMENSIONS)},
-            "question_text": {"type": "string"},
+            "question_text": {"type": "string", "maxLength": 200},
         },
         "required": ["probe_type", "target_dimension", "question_text"],
         "additionalProperties": False,
@@ -162,12 +191,14 @@ EXEMPLAR_SCHEMA = structured_schema(
         "properties": {
             "exemplars": {
                 "type": "array",
+                "minItems": 1,
+                "maxItems": 10,
                 "items": {
                     "type": "object",
                     "properties": {
                         "turn": {"type": "integer"},
-                        "question": {"type": "string"},
-                        "model_answer": {"type": "string"},
+                        "question": {"type": "string", "maxLength": 500},
+                        "model_answer": {"type": "string", "maxLength": 500},
                         "target_dimension": {"type": "string"},
                     },
                     "required": ["turn", "question", "model_answer", "target_dimension"],

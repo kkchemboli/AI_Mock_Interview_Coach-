@@ -79,11 +79,16 @@ def _call(
     temperature: float,
     max_tokens: int,
     extra: dict | None = None,
-) -> str:
+    allow_fallback: bool = True,
+) -> tuple[str, str, bool]:
+    """Call the API, returning `(content, model_used, used_fallback)`. On a
+    retryable error the primary model is retried, then (unless
+    `allow_fallback` is False) the configured fallback model. The model that
+    actually produced the content is reported so callers can record provenance.
+    """
     client = _get_client(config)
-    model = config.model
     kwargs = {
-        "model": model,
+        "model": config.model,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
@@ -91,10 +96,12 @@ def _call(
     if extra:
         kwargs.update(extra)
     last_error: Exception | None = None
+    used_fallback = False
     for attempt in range(3):
         try:
             response = client.chat.completions.create(**kwargs)
-            return response.choices[0].message.content or ""
+            content = response.choices[0].message.content or ""
+            return content, kwargs["model"], used_fallback
         except AuthenticationError as exc:
             raise LLMConfigError(
                 "Invalid Groq API key — check GROQ_API_KEY."
@@ -102,10 +109,21 @@ def _call(
         except _RETRYABLE as exc:
             last_error = exc
             time.sleep(min(2 ** attempt, 8))
-            if attempt == 0:
+            if (
+                attempt == 0
+                and allow_fallback
+                and config.fallback_model != config.model
+            ):
                 kwargs["model"] = config.fallback_model
+                used_fallback = True
     assert last_error is not None
     raise last_error
+
+
+def _record_meta(meta: dict | None, model: str, used_fallback: bool) -> None:
+    if meta is not None:
+        meta["model"] = model
+        meta["fallback"] = used_fallback
 
 
 def chat_text(
@@ -113,13 +131,19 @@ def chat_text(
     temperature: float = 0.4,
     max_tokens: int = 1024,
     config: LLMConfig | None = None,
+    meta: dict | None = None,
+    allow_fallback: bool = True,
 ) -> str:
     config = config or load_config()
     extra = {}
     if _is_reasoning(config.model):
         extra["reasoning_format"] = "hidden"
-    return _call(messages, config=config, temperature=temperature,
-                 max_tokens=max_tokens, extra=extra)
+    content, model, used_fallback = _call(
+        messages, config=config, temperature=temperature,
+        max_tokens=max_tokens, extra=extra, allow_fallback=allow_fallback,
+    )
+    _record_meta(meta, model, used_fallback)
+    return content
 
 
 def chat_json(
@@ -128,9 +152,13 @@ def chat_json(
     temperature: float = 0.3,
     max_tokens: int = 4096,
     config: LLMConfig | None = None,
+    meta: dict | None = None,
+    allow_fallback: bool = True,
 ) -> dict:
     """Return a parsed dict. When `schema` (from `structured_schema`) is given,
     use Groq strict `json_schema` mode so the response is guaranteed to conform.
+    `meta`, if given, is populated with the model actually used and whether the
+    fallback model was engaged.
     """
     config = config or load_config()
     extra = {}
@@ -145,6 +173,9 @@ def chat_json(
                 "strict": True,
             },
         }
-    raw = _call(messages, config=config, temperature=temperature,
-                max_tokens=max_tokens, extra=extra)
+    raw, model, used_fallback = _call(
+        messages, config=config, temperature=temperature,
+        max_tokens=max_tokens, extra=extra, allow_fallback=allow_fallback,
+    )
+    _record_meta(meta, model, used_fallback)
     return extract_json(raw)

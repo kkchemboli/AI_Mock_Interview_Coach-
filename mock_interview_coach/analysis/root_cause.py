@@ -36,7 +36,18 @@ _CAUSE_SIGNATURES: dict[str, dict[str, Any]] = {
         "weights": {"substance": -1.5, "credibility": -1.0, "differentiation": 0.5},
         "response_types": ["i_dont_know", "short"],
     },
+    "insufficient-specificity": {
+        "weights": {"credibility": -1.0, "differentiation": -1.0, "substance": -0.5},
+        "response_types": ["vague", "short"],
+    },
 }
+
+# Psychological diagnoses (status-anxiety, fear-of-being-wrong) require
+# recurrence (>= 2 flagged answers) before they are assigned; a single
+# observation resolves to the observable label instead, so the report never
+# makes an unsupported inference about the candidate's internal state.
+_PSYCHOLOGICAL_CAUSES = ("status-anxiety", "fear-of-being-wrong")
+_PSYCHOLOGICAL_THRESHOLD = 2
 
 ROOT_CAUSE_DRILLS: dict[str, dict[str, Any]] = {
     "inability-to-identify-question-core": {
@@ -124,6 +135,19 @@ ROOT_CAUSE_DRILLS: dict[str, dict[str, Any]] = {
             "answers memorable."
         ),
     },
+    "insufficient-specificity": {
+        "label": "Specificity pass",
+        "target_dimension": "credibility",
+        "exercise": (
+            "In your next three answers, include one concrete example, one "
+            "number or named artifact, and one first-person action you took."
+        ),
+        "coaching_note": (
+            "The weakness did not repeat a single pattern, so the evidence "
+            "points to under-specified answers rather than one psychological "
+            "cause. Grounding claims with specifics is the fix."
+        ),
+    },
 }
 
 
@@ -147,15 +171,27 @@ def suggest_root_cause(evaluation: dict[str, Any]) -> str:
     return best if scores[best] > 0.0 else "none"
 
 
+def _required_count(cause: str) -> int:
+    """Recurrence requirement: psychological causes need >= 2 flagged answers."""
+    return _PSYCHOLOGICAL_THRESHOLD if cause in _PSYCHOLOGICAL_CAUSES else 1
+
+
 def resolve_root_cause(state: ConversationState) -> str:
     """Combine the Evaluator's inline root causes across the run; fall back to
-    the deterministic signature over the averaged profile when none were given."""
+    the deterministic signature over the averaged profile when none were given.
+    Psychological causes only resolve once they recur enough (see
+    `_PSYCHOLOGICAL_CAUSES`); otherwise the observable label is returned."""
     counts = {rc: n for rc, n in state.root_cause_counts.items() if n > 0}
     if counts:
-        return max(
-            ROOT_CAUSES,
-            key=lambda rc: (counts.get(rc, 0), -ROOT_CAUSES.index(rc)),
-        )
+        eligible = {
+            rc: n for rc, n in counts.items() if n >= _required_count(rc)
+        }
+        if eligible:
+            return max(
+                ROOT_CAUSES,
+                key=lambda rc: (eligible.get(rc, 0), -ROOT_CAUSES.index(rc)),
+            )
+        return "insufficient-specificity"
     profile = {
         d: (sum(vals) / len(vals) if vals else 3.0)
         for d, vals in state.dim_histories.items()
@@ -171,7 +207,10 @@ def resolve_root_cause(state: ConversationState) -> str:
         if response_types
         else "substantive"
     )
-    return suggest_root_cause({"dimension_scores": profile, "response_type": majority})
+    best = suggest_root_cause({"dimension_scores": profile, "response_type": majority})
+    if best in _PSYCHOLOGICAL_CAUSES:
+        return "insufficient-specificity"
+    return best
 
 
 def drill_for(root_cause: str) -> dict[str, Any]:

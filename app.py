@@ -203,6 +203,17 @@ def _render_done() -> None:
         c1.metric("Overall average", f"{summary['overall_average']:.1f}")
         c2.metric("Trend", summary["trend"])
         c3.metric("Root cause", summary["root_cause"])
+    state = st.session_state.session.state
+    unvalidated = any(
+        (answer.get("provenance") or {}).get("validated") is False
+        for turn in state.turns
+        for answer in turn.answers
+    )
+    if unvalidated:
+        st.caption(
+            "One or more answers were scored with reduced confidence. "
+            "You can run a new interview if you'd like a fully scored report."
+        )
     st.markdown(report["markdown"])
     st.download_button(
         "Download Markdown", report["markdown"],
