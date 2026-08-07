@@ -26,7 +26,13 @@ The Streamlit app provides:
 - A larger code-answer editor when a question expects code.
 - A final report view with Markdown and PDF downloads.
 
-<!-- TODO: Paste an application screenshot or demo GIF here. -->
+**Landing page**
+
+![Landing page](landing_page.png)
+
+**Interview question**
+
+![Interview question](interview_question.png)
 
 ## Architecture overview
 
@@ -51,7 +57,7 @@ Candidate / Streamlit UI → InterviewSession → Agent layer + deterministic
 orchestrator → ConversationState → Report generator → Markdown/PDF output.
 ```
 
-`app.py` (Streamlit) or `scripts/simulate.py` (headless) drives `InterviewSession`, which owns `ConversationState`, calls the five agents, and applies the deterministic orchestrator after every answer; when the interview ends, the report generator exports Markdown and PDF. Everything not captured by that flow is detailed below.
+`app.py` (Streamlit) drives `InterviewSession`, which owns `ConversationState`, calls the five agents, and applies the deterministic orchestrator after every answer; when the interview ends, the report generator exports Markdown and PDF. Everything not captured by that flow is detailed below.
 
 ### Agents and responsibilities
 
@@ -131,7 +137,6 @@ Scoring details, prompt design, and robustness controls are covered in [Evaluati
 │   ├── orchestrator.py                      # Deterministic next-step policy
 │   └── utils/                               # LLM client, schemas, parsing, validation, reports
 ├── scripts/
-│   ├── simulate.py                          # Headless strong/weak/tricky simulations
 │   └── run_evals.py                         # API-backed evaluator evaluation harness
 ├── evals/                                   # Hand-labelled evaluator cases
 └── requirements.txt

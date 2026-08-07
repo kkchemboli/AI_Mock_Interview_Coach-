@@ -235,10 +235,41 @@ def main() -> None:
     st.title("AI Mock Interview Coach")
     if st.session_state.session is None:
         st.write(
-            "Configure the interview on the left and hit **Start interview**. "
-            "Answer the interviewer turn by turn; follow-up probes will appear "
-            "when an answer needs more substance. A report (Markdown + PDF) is "
-            "generated at the end."
+            "Practice a live AI-led interview for **any role** and get a scored "
+            "report at the end."
+        )
+        st.subheader(":material/rocket_launch: How to use this app")
+        st.markdown(
+            """
+            **1. Configure the interview** — in the sidebar, pick a ready-made
+            preset (Backend, Frontend, Data Scientist, Product Manager, Engineering
+            Manager) or choose **Custom** to enter **any role you want** — SRE,
+            ML Engineer, Teacher, Designer — plus a seniority band and focus area.
+
+            **2. Start the interview** — hit **Start interview** and the interviewer
+            asks the first question.
+
+            **3. Answer turn by turn** — type your answers in the chat input.
+            Code questions open a larger editor so you can write out full solutions.
+
+            **4. Expect follow-up probes** — when an answer needs more substance,
+            the interviewer digs deeper before moving on.
+
+            **5. Get your report** — at the end you'll see your overall score,
+            score trend, and a root-cause analysis, all downloadable as Markdown
+            and PDF.
+            """
+        )
+        st.info(
+            "The presets are only shortcuts — the app works for any role. "
+            "Just pick **Custom** in the sidebar and type the role you want to "
+            "practice.",
+            icon=":material/tips_and_updates:",
+        )
+        st.caption(
+            "Tip: use **End early** in the sidebar for a quick session, or "
+            "**New interview** to start over. Substantive answers get the most "
+            "accurate scores."
         )
         return
     for msg in st.session_state.messages:
